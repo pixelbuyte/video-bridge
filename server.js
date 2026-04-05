@@ -74,6 +74,9 @@ app.post('/download', (req, res) => {
   let stderr = '';
   proc.stdout.on('data', d => { stdout += d; });
   proc.stderr.on('data', d => { stderr += d; });
+  proc.on('error', err => {
+    jobs[jobId] = { status: 'error', error: `Failed to start yt-dlp: ${err.message}`, completedAt: new Date().toISOString() };
+  });
 
   proc.on('close', code => {
     if (code !== 0) {
@@ -198,6 +201,7 @@ function runFfmpeg(args) {
     const proc = spawn(ffmpegBin, args);
     let stderr = '';
     proc.stderr.on('data', d => { stderr += d; });
+    proc.on('error', err => reject(new Error(`Failed to start ffmpeg: ${err.message}`)));
     proc.on('close', code => {
       if (code !== 0) reject(new Error(`FFmpeg exited ${code}: ${stderr.slice(-500)}`));
       else resolve();

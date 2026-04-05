@@ -37,6 +37,22 @@ const YTDLP_PATH = (() => {
   return 'yt-dlp'; // fallback, rely on PATH
 })();
 
+// GET / — homepage
+app.get('/', (req, res) => {
+  res.send(`<!DOCTYPE html><html><head><title>video-bridge</title>
+<style>body{font-family:monospace;max-width:600px;margin:40px auto;padding:0 20px;background:#111;color:#eee}
+h1{color:#fff}a{color:#7cf}table{width:100%;border-collapse:collapse}
+td,th{text-align:left;padding:6px 10px;border-bottom:1px solid #333}th{color:#aaa}</style></head>
+<body><h1>video-bridge</h1><p>Server is running.</p>
+<table><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+<tr><td>GET</td><td><a href="/status">/status</a></td><td>All jobs, downloads, outputs</td></tr>
+<tr><td>POST</td><td>/download</td><td>Start a yt-dlp download</td></tr>
+<tr><td>POST</td><td>/edit</td><td>Cut + concat clips with FFmpeg</td></tr>
+<tr><td>GET</td><td>/job/:jobId</td><td>Poll a specific job</td></tr>
+<tr><td>GET</td><td>/file/:filename</td><td>Download an output file</td></tr>
+</table></body></html>`);
+});
+
 // POST /download
 app.post('/download', (req, res) => {
   const { url } = req.body;

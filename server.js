@@ -106,7 +106,7 @@ app.post('/download', (req, res) => {
 
 // POST /edit
 app.post('/edit', async (req, res) => {
-  const { filePath, clips } = req.body;
+  const { filePath, clips, caption, captionPosition } = req.body;
 
   if (!filePath || !Array.isArray(clips) || clips.length === 0) {
     return res.status(400).json({ error: 'Missing filePath or clips array' });
@@ -134,7 +134,7 @@ app.post('/edit', async (req, res) => {
         '-to', String(end),
         '-c:v', 'libx264',
         '-c:a', 'aac',
-        '-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,setsar=1',
+        '-vf', buildVf(caption, captionPosition),
         tempOut,
       ]);
     }
@@ -203,6 +203,17 @@ app.get('/job/:jobId', (req, res) => {
   if (!job) return res.status(404).json({ error: 'Job not found' });
   res.json(job);
 });
+
+// Helper: build FFmpeg -vf filter string
+function buildVf(caption, position) {
+  const base = 'crop=ih*9/16:ih,scale=1080:1920,setsar=1';
+  if (!caption) return base;
+  const y = position === 'bottom' ? 'h-text_h-60' : position === 'middle' ? '(h-text_h)/2' : '80';
+  const font = 'C\\\\:/Windows/Fonts/arialbd.ttf';
+  const safe = caption.replace(/'/g, "\u2019").replace(/:/g, '\\:');
+  const drawtext = `drawtext=text='${safe}':fontfile='${font}':fontsize=52:fontcolor=white:x=(w-text_w)/2:y=${y}:borderw=4:bordercolor=black`;
+  return `${base},${drawtext}`;
+}
 
 // Helper: run ffmpeg with args, return promise
 function runFfmpeg(args) {

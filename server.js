@@ -62,7 +62,7 @@ app.post('/download', (req, res) => {
   jobs[jobId] = { status: 'downloading', url, startedAt: new Date().toISOString() };
 
   const outputTemplate = path.join(DOWNLOADS_DIR, '%(title)s.%(ext)s');
-  const args = ['--no-playlist', '--merge-output-format', 'mp4', '-o', outputTemplate];
+  const args = ['--no-playlist', '--merge-output-format', 'mp4', '--extractor-args', 'youtube:player_client=ios', '-o', outputTemplate];
 
   // Cookie support: request body takes priority, then env var
   let tempCookieFile = null;

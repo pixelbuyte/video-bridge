@@ -55,19 +55,28 @@ td,th{text-align:left;padding:6px 10px;border-bottom:1px solid #333}th{color:#aa
 
 // POST /download
 app.post('/download', (req, res) => {
-  const { url } = req.body;
+  const { url, cookies } = req.body;
   if (!url) return res.status(400).json({ error: 'Missing url' });
 
   const jobId = uuidv4();
   jobs[jobId] = { status: 'downloading', url, startedAt: new Date().toISOString() };
 
   const outputTemplate = path.join(DOWNLOADS_DIR, '%(title)s.%(ext)s');
-  const args = [
-    '--no-playlist',
-    '--merge-output-format', 'mp4',
-    '-o', outputTemplate,
-    url,
-  ];
+  const args = ['--no-playlist', '--merge-output-format', 'mp4', '-o', outputTemplate];
+
+  // Cookie support: request body takes priority, then env var
+  let tempCookieFile = null;
+  if (cookies) {
+    tempCookieFile = path.join(DOWNLOADS_DIR, `cookies_${jobId}.txt`);
+    fs.writeFileSync(tempCookieFile, cookies);
+    args.push('--cookies', tempCookieFile);
+  } else if (process.env.YTDLP_COOKIES) {
+    tempCookieFile = path.join(DOWNLOADS_DIR, `cookies_${jobId}.txt`);
+    fs.writeFileSync(tempCookieFile, process.env.YTDLP_COOKIES);
+    args.push('--cookies', tempCookieFile);
+  }
+
+  args.push(url);
 
   const proc = spawn(YTDLP_PATH, args);
   let stdout = '';
@@ -75,15 +84,16 @@ app.post('/download', (req, res) => {
   proc.stdout.on('data', d => { stdout += d; });
   proc.stderr.on('data', d => { stderr += d; });
   proc.on('error', err => {
+    if (tempCookieFile) try { fs.unlinkSync(tempCookieFile); } catch (_) {}
     jobs[jobId] = { status: 'error', error: `Failed to start yt-dlp: ${err.message}`, completedAt: new Date().toISOString() };
   });
 
   proc.on('close', code => {
+    if (tempCookieFile) try { fs.unlinkSync(tempCookieFile); } catch (_) {}
     if (code !== 0) {
       jobs[jobId] = { status: 'error', error: stderr.slice(-500), completedAt: new Date().toISOString() };
       return;
     }
-    // Find the newest file in downloads
     const files = fs.readdirSync(DOWNLOADS_DIR)
       .map(f => ({ name: f, mtime: fs.statSync(path.join(DOWNLOADS_DIR, f)).mtime }))
       .sort((a, b) => b.mtime - a.mtime);

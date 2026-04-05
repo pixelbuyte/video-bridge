@@ -209,7 +209,7 @@ function buildVf(caption, position) {
   const base = 'crop=ih*9/16:ih,scale=1080:1920,setsar=1';
   if (!caption) return base;
   const y = position === 'bottom' ? 'h-text_h-60' : position === 'middle' ? '(h-text_h)/2' : '80';
-  const font = 'C\\\\:/Windows/Fonts/arialbd.ttf';
+  const font = process.platform === 'win32' ? 'C\\\\:/Windows/Fonts/arialbd.ttf' : '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
   const safe = caption.replace(/'/g, "\u2019").replace(/:/g, '\\:');
   const drawtext = `drawtext=text='${safe}':fontfile='${font}':fontsize=52:fontcolor=white:x=(w-text_w)/2:y=${y}:borderw=4:bordercolor=black`;
   return `${base},${drawtext}`;
